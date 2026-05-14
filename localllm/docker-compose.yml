@@ -1,0 +1,20 @@
+services:
+  localllm:
+    build:
+      context: .
+    container_name: prompt_filter_localllm
+    env_file:
+      - ../.env
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../storage/logs/localllm:/app/logs
+      - ./models:/app/models
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+networks:
+  prompt_filter_net:
+    name: prompt_filter_net
+    driver: bridge

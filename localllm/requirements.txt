@@ -1,0 +1,12 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.8.2
+
+# Local LLM runtime
+torch==2.4.1
+transformers==4.44.2
+sentencepiece==0.2.0
+accelerate==0.34.2
+
+# Metrics/logging helpers
+prometheus-client==0.20.0
