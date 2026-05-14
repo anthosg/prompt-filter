@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prompt Filter Gateway</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20260514-7" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero card">
+        <div>
+          <p class="eyebrow">Prompt Injection Filter</p>
+          <h1>Проверка работы системы фильтрации запросов к LLM API</h1>
+          <p class="hero-text">
+            Интерфейс отправляет тестовый запрос в <code>/v1/chat</code>, показывает решение фильтра,
+            оценку риска, причины срабатывания, результат переписывания и ответ локальной LLM, если она была вызвана.
+          </p>
+        </div>
+        <div class="status-panel" aria-live="polite">
+          <span class="status-dot" id="healthDot"></span>
+          <div>
+            <span class="muted">Статус API</span>
+            <strong id="healthText">проверяется…</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <form class="card form-card" id="promptForm" action="javascript:void(0)" novalidate>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Запрос</p>
+              <h2>Тестовый сценарий</h2>
+            </div>
+            <button class="secondary" type="button" id="resetBtn">Сбросить</button>
+          </div>
+
+          <input type="hidden" id="roleInput" name="role" value="user" />
+
+          <label class="prompt-main-field">
+            Текст запроса
+            <textarea id="promptInput" name="prompt" rows="10" spellcheck="false"></textarea>
+          </label>
+
+          <section class="debug-panel control-section" aria-labelledby="debugTitle">
+            <div class="debug-header">
+              <div>
+                <span class="muted small">Debug</span>
+                <h3 id="debugTitle">Отладочные параметры фильтра</h3>
+              </div>
+            </div>
+            <div class="switch-grid">
+              <label class="checkbox"><input type="checkbox" id="enableRules" checked /> Rule detection</label>
+              <label class="checkbox"><input type="checkbox" id="enableHeuristics" checked /> Heuristics</label>
+              <label class="checkbox"><input type="checkbox" id="enableRewrite" checked /> Rewrite</label>
+              <label class="checkbox"><input type="checkbox" id="llmEnabled" /> LLM call</label>
+            </div>
+            <label>
+              ML-модель
+              <select id="mlModel">
+                <option value="tfidf_logreg" selected>tfidf_logreg</option>
+                <option value="multilingual_minilm">multilingual_minilm</option>
+                <option value="tfidf_logreg_plus_multilingual_minilm">tfidf_logreg_plus_multilingual_minilm</option>
+                <option value="transformers_distilbert">transformers_distilbert</option>
+                <option value="none">none</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="dataset-panel control-section" aria-labelledby="datasetTitle">
+            <div class="dataset-header">
+              <div>
+                <span class="muted small">CSV-набор</span>
+                <h3 id="datasetTitle">Выбор тестового запроса из списка</h3>
+              </div>
+              <span class="pill" id="datasetCount">загрузка…</span>
+            </div>
+
+            <div class="dataset-filters">
+              <label>
+                Тип
+                <select id="attackTypeFilter">
+                  <option value="all" selected>Все типы</option>
+                </select>
+              </label>
+              <label>
+                Язык
+                <select id="languageFilter">
+                  <option value="all" selected>Все языки</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              Тестовый пример
+              <select id="datasetSelect">
+                <option value="">CSV ещё не загружен</option>
+              </select>
+            </label>
+            <p class="muted small" id="datasetMeta">После выбора текст будет подставлен в поле запроса.</p>
+          </section>
+
+          <button class="primary" type="submit" id="submitBtn">Проверить запрос</button>
+        </form>
+
+        <section class="card result-card" aria-live="polite">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Результат</p>
+              <h2>Решение фильтра</h2>
+            </div>
+            <span class="badge badge-idle" id="decisionBadge">нет данных</span>
+          </div>
+
+          <div class="risk-block">
+            <div class="risk-label">
+              <span>Risk score</span>
+              <strong id="riskValue">—</strong>
+            </div>
+            <div class="risk-track"><div id="riskBar"></div></div>
+          </div>
+
+          <div class="summary-grid">
+            <div><span class="muted">Blocked</span><strong id="blockedValue">—</strong></div>
+            <div><span class="muted">LLM called</span><strong id="llmCalledValue">—</strong></div>
+            <div><span class="muted">Model</span><strong id="modelValue">—</strong></div>
+          </div>
+
+          <div class="tabs" role="tablist">
+            <button class="tab active" type="button" data-tab="reasons">Причины</button>
+            <button class="tab" type="button" data-tab="answer">Ответ</button>
+            <button class="tab" type="button" data-tab="sanitized">Sanitized</button>
+            <button class="tab" type="button" data-tab="json">JSON</button>
+          </div>
+
+          <div class="tab-panel active" id="tab-reasons">
+            <div id="reasonsList" class="empty-state">Отправьте запрос, чтобы увидеть причины решения.</div>
+          </div>
+          <div class="tab-panel" id="tab-answer">
+            <pre id="answerOutput">—</pre>
+          </div>
+          <div class="tab-panel" id="tab-sanitized">
+            <pre id="sanitizedOutput">—</pre>
+          </div>
+          <div class="tab-panel" id="tab-json">
+            <pre id="jsonOutput">—</pre>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/assets/app.js?v=20260514-7" defer></script>
+  </body>
+</html>
