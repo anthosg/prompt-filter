@@ -1,0 +1,156 @@
+services:
+  gateway:
+    build:
+      context: ./gateway
+    container_name: prompt_filter_gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SSL_CERT_DAYS: ${SSL_CERT_DAYS:-365}
+      SSL_CERT_COUNTRY: ${SSL_CERT_COUNTRY:-RU}
+      SSL_CERT_STATE: ${SSL_CERT_STATE:-Moscow}
+      SSL_CERT_LOCALITY: ${SSL_CERT_LOCALITY:-Moscow}
+      SSL_CERT_ORG: ${SSL_CERT_ORG:-prompt-filter}
+      SSL_CERT_COMMON_NAME: ${SSL_CERT_COMMON_NAME:-localhost}
+    volumes:
+      - ./gateway/ssl:/etc/nginx/ssl
+      - ./gateway/static:/usr/share/nginx/html
+      - ./storage/datasets/splits:/usr/share/nginx/html/data:ro
+    depends_on:
+      filtering:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  filtering:
+    build:
+      context: ./filtering
+    container_name: prompt_filter_filtering
+    gpus: all
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    expose:
+      - "8000"
+    volumes:
+      - ./filtering/app:/app/app
+      - ./filtering/tests:/app/tests
+      - ./storage/logs/filtering:/app/logs
+      - ./storage/models:/app/models
+      - ./storage/datasets:/app/datasets
+    depends_on:
+      - localllm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  localllm:
+    build:
+      context: ./localllm
+    container_name: prompt_filter_localllm
+    env_file:
+      - .env
+    expose:
+      - "8001"
+    volumes:
+      - ./storage/logs/localllm:/app/logs
+      - ./localllm/models:/app/models
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prompt_filter_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    depends_on:
+      - filtering
+      - localllm
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: prompt_filter_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: prompt_filter_loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: prompt_filter_promtail
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./storage/logs:/var/log/prompt-filter:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+  experiments:
+    build:
+      context: ./experiments
+    container_name: prompt_filter_experiments
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app/experiments
+    volumes:
+      - ./experiments:/app/experiments
+      - ./storage/datasets:/app/datasets
+      - ./storage/results:/app/results
+      - ./storage/models:/app/models
+      - ./storage/logs:/app/logs
+    depends_on:
+      filtering:
+        condition: service_healthy
+    networks:
+      - prompt_filter_net
+    profiles:
+      - experiments
+
+networks:
+  prompt_filter_net:
+    name: prompt_filter_net
+    driver: bridge
+
+volumes:
+  grafana_data:
