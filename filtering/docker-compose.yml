@@ -1,0 +1,21 @@
+services:
+  filtering:
+    build:
+      context: .
+    container_name: prompt_filter_filtering
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../storage/logs/filtering:/app/logs
+      - ../storage/models:/app/models
+      - ../storage/datasets:/app/datasets
+    restart: unless-stopped
+    networks:
+      - prompt_filter_net
+
+networks:
+  prompt_filter_net:
+    name: prompt_filter_net
+    external: true

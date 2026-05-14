@@ -1,0 +1,9 @@
+[project]
+name = "prompt-filter-filtering"
+version = "0.1.0"
+description = "FastAPI filtering service for prompt injection detection"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
