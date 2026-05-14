@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker / logs
+*.log
+*.pid
+
+# Gateway SSL generated files
+gateway/ssl/*.crt
+gateway/ssl/*.key
+gateway/ssl/*.pem
+!gateway/ssl/.gitkeep
+
+# Storage generated data
+storage/logs/**/*.log
+storage/logs/**/*.json
+storage/logs/**/*.jsonl
+
+storage/models/**/*.pkl
+storage/models/**/*.joblib
+storage/models/**/*.bin
+storage/models/**/*.safetensors
+storage/models/**/*.pt
+storage/models/**/*.pth
+
+storage/datasets/raw/*
+storage/datasets/processed/*
+storage/datasets/splits/*
+
+storage/results/eval/*
+storage/results/benchmarks/*
+storage/results/loadtest/*
+
+# Keep directory structure
+!.gitkeep
+!*/.gitkeep
+
+# Experiments output
+experiments/results/
+
+# Local model cache
+localllm/models/*
+!localllm/models/.gitkeep
+
+# Grafana local data if mounted manually
+grafana_data/

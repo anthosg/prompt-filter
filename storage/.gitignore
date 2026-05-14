@@ -1,0 +1,23 @@
+# Ignore generated files in storage
+logs/**/*.log
+logs/**/*.json
+logs/**/*.jsonl
+
+models/**/*.pkl
+models/**/*.joblib
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.pt
+models/**/*.pth
+
+datasets/raw/*
+datasets/processed/*
+datasets/splits/*
+
+results/eval/*
+results/benchmarks/*
+results/loadtest/*
+
+# Keep directory structure
+!.gitkeep
+!*/.gitkeep
