@@ -1,0 +1,23 @@
+services:
+  experiments:
+    build:
+      context: .
+    container_name: prompt_filter_experiments
+    env_file:
+      - ../.env
+    environment:
+      PYTHONPATH: /app/experiments
+      FILTERING_URL: http://filtering:8000/v1/chat
+    volumes:
+      - .:/app/experiments
+      - ../storage/datasets:/app/datasets
+      - ../storage/results:/app/results
+      - ../storage/models:/app/models
+      - ../storage/logs:/app/logs
+    networks:
+      - prompt_filter_net
+
+networks:
+  prompt_filter_net:
+    external: true
+    name: prompt_filter_net
